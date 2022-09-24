@@ -1,23 +1,59 @@
 let isEditMode = false;
+let patterns = {
+    name: /(^[A-Z][a-zA-Z\s]{0,20}[a-zA-Z]$)/,
+    email: /^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/,
+    address:/\d+\w+\s\w+\s\w+/,
+}
+
+const validateData = (user) => {
+    if (!patterns.name.test(user.name)) {
+        alert('Hibás a név')
+        return false;
+    }
+    if (!patterns.email.test(user.emailAddress)) {
+        alert('Hibás az email cím!')
+        return false;
+    }
+    if (!patterns.address.test(user.address)) {
+        alert('Hibás a cím!')
+        return false;
+    }
+    return true;
+} 
 
 const deleteUser = async function (userID) {
-    await fetch(`http://localhost:3000/users/${userID}`,  {
+    await fetch(`http://localhost:3000/users/${userID}`, {
         method: 'DELETE',
     });
-    await getUsers();
+
+    users = await getUsers();
+    createTable(users);
 };
 
 const addUser = async () => {
     const name = document.querySelector('.nameInput').value;
     const email = document.querySelector('.emailInput').value;
     const address = document.querySelector('.addressInput').value;
-    await fetch('http://localhost:3000/users', {
-        method: 'POST',
-        body: JSON.stringify(),
-        headers: {
-            'Content-type': 'application/json',
-        }
-    })
+    const user = {
+        name: name,
+        emailAddress: email,
+        address: address
+    }
+    if (validateData(user)) {
+        let newUser = await fetch('http://localhost:3000/users', {
+            method: 'POST',
+            body: JSON.stringify(user),
+            headers: {
+                'Content-type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        
+        console.log("New user added: ", newUser);
+        users.push(newUser);
+        
+        createTable(users);
+    }
 }
 
 const toggleEditMode = (user) => {
@@ -52,7 +88,7 @@ const toggleEditMode = (user) => {
                 td.textContent = user.address;
             }
         }
-    }) 
+    })
 }
 
 const editUser = (user) => {
@@ -66,7 +102,7 @@ const editUser = (user) => {
 const save = async (user) => {
     const editDiv = document.querySelector(`.edit${user.id}`);
     const updateDiv = document.querySelector(`.update${user.id}`)
-    
+
     const newName = document.getElementById('editName').value;
     const newEmailAddress = document.getElementById('editEmailAddress').value;
     const newAddress = document.getElementById('editAdress').value;
@@ -74,22 +110,22 @@ const save = async (user) => {
     user.emailAddress = newEmailAddress;
     user.address = newAddress;
 
-    // TODO: Validate data before saving!
+    if (validateData(user)) {
+        console.log("User edited: ", user)
+        await fetch(`http://localhost:3000/users/${user.id}`, {
+            method: 'PUT',
+            body: JSON.stringify(user),
+            headers: {
+                'Content-type': 'application/json',
+            }
+        });
 
-    console.log(JSON.stringify(user))
-    await fetch(`http://localhost:3000/users/${user.id}`, {
-        method: 'PUT',
-        body: JSON.stringify(user),
-        headers: {
-            'Content-type': 'application/json',
-        }
-    });
+        isEditMode = false;
+        toggleEditMode(user);
 
-    isEditMode = false;
-    toggleEditMode(user);
-
-    editDiv.style.display = 'block';
-    updateDiv.style.display = 'none';
+        editDiv.style.display = 'block';
+        updateDiv.style.display = 'none';
+    }
 }
 
 const cancel = async (user) => {
@@ -103,15 +139,59 @@ const cancel = async (user) => {
 
 
 const getUsers = async () => {
-    console.log("getUsers")
     const response = await fetch('http://localhost:3000/users');
     return await response.json();
+}
+
+const createNewUserRow = (table) => {
+    const tr = document.createElement('tr');
+    table.appendChild(tr);
+
+    const id = document.createElement('td');
+    tr.appendChild(id);
+    id.textContent = '#';
+
+    const name = document.createElement('td');
+    const nameInput = document.createElement('input');
+    nameInput.classList.add('nameInput');
+    name.appendChild(nameInput);
+    tr.appendChild(name);
+
+    const emailAddress = document.createElement('td');
+    const emailInput = document.createElement('input');
+    emailInput.classList.add('emailInput');
+    emailAddress.appendChild(emailInput);
+    tr.appendChild(emailAddress);
+
+    const address = document.createElement('td');
+    const addressInput = document.createElement('input');
+    addressInput.classList.add('addressInput');
+    address.appendChild(addressInput);
+    tr.appendChild(address);
+
+    const save = document.createElement('td');
+    const div = document.createElement('div');
+    const saveButton = document.createElement('button');
+    const saveIcon = document.createElement('i');
+    saveIcon.classList.add("fa");
+    saveIcon.classList.add("fa-save");
+    saveButton.appendChild(saveIcon);
+    div.appendChild(saveButton);
+
+    saveButton.addEventListener('click', function (event) {
+        addUser();
+    });
+    save.appendChild(div);
+    tr.appendChild(save);
+
+    table.appendChild(tr);
 }
 
 const createTable = (users) => {
     const tBody = document.querySelector('table tbody');
     tBody.innerHTML = '';
-    users.forEach( user => {
+    createNewUserRow(tBody);
+    users.forEach(user => {
         const tr = document.createElement('tr');
         tBody.appendChild(tr);
         tr.setAttribute('id', user.id);
@@ -119,7 +199,7 @@ const createTable = (users) => {
         const id = document.createElement('td');
         tr.appendChild(id);
         id.textContent = user.id;
-        
+
         const name = document.createElement('td');
         tr.appendChild(name);
         name.textContent = user.name;
@@ -147,8 +227,7 @@ const createTable = (users) => {
             if (!isEditMode) {
                 editUser(user);
             } else {
-                console.log("Please finish editing!")
-                // TODO: Show alert!
+                alert("Please finish editing!")
             }
         });
 
@@ -158,7 +237,7 @@ const createTable = (users) => {
         deleteIcon.classList.add("fa-trash");
         deleteButton.appendChild(deleteIcon);
         div.appendChild(deleteButton);
-        
+
         edit.appendChild(div);
         tr.appendChild(edit);
 
@@ -166,16 +245,15 @@ const createTable = (users) => {
             if (!isEditMode) {
                 deleteUser(user.id)
             } else {
-                console.log("Please finish editing!")
-                // TODO: Show alert!
+                alert("Please finish editing!")
             }
         });
 
         div = document.createElement('div');
         div.classList.add(`update${user.id}`);
-        div.style.display='none';
+        div.style.display = 'none';
 
-        
+
         const saveButton = document.createElement('button');
         const saveIcon = document.createElement('i');
         saveIcon.classList.add("fa");
@@ -183,7 +261,7 @@ const createTable = (users) => {
         saveButton.appendChild(saveIcon);
         div.appendChild(saveButton);
 
-        saveButton.addEventListener('click', function(event) {
+        saveButton.addEventListener('click', function (event) {
             save(user);
         });
 
@@ -203,5 +281,5 @@ const createTable = (users) => {
     });
 }
 
-const users = await getUsers();
+let users = await getUsers();
 createTable(users);
