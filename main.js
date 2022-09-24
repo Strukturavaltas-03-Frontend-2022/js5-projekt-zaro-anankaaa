@@ -7,17 +7,18 @@ let patterns = {
 
 const validateData = (user) => {
     if (!patterns.name.test(user.name)) {
-        alert('Hibás a név')
+        swal('Name is incorrect.', 'Please amend!', "warning",)
         return false;
     }
     if (!patterns.email.test(user.emailAddress)) {
-        alert('Hibás az email cím!')
+        swal('Email address is incorrect', 'Please amend!', "warning")
         return false;
     }
     if (!patterns.address.test(user.address)) {
-        alert('Hibás a cím!')
+        swal('Address is incorrect', 'Please amend!', "warning")
         return false;
     }
+    swal('Good job!', 'You created a new user.', "success")
     return true;
 } 
 
