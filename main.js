@@ -18,7 +18,7 @@ const validateData = (user) => {
         swal('Address is incorrect', 'Please amend!', "warning")
         return false;
     }
-    swal('Good job!', 'You created a new user.', "success")
+    swal('Good job!', 'It is accepted.', "success")
     return true;
 } 
 
